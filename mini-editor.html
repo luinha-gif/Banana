@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>Mini Editor</title>
+<style>
+  * { box-sizing: border-box; }
+
+  html, body {
+    height: 100%;
+    margin: 0;
+    background: #12141a;
+    color: #e8e8ec;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    overflow: hidden;
+  }
+
+  body {
+    display: flex;
+    flex-direction: column;
+  }
+
+  header {
+    padding: 10px 14px;
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+    border-bottom: 1px solid #23262f;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  header .actions {
+    display: flex;
+    gap: 8px;
+  }
+
+  header button {
+    background: #23262f;
+    color: #e8e8ec;
+    border: none;
+    border-radius: 8px;
+    padding: 7px 12px;
+    font-size: 13px;
+    font-weight: 500;
+  }
+
+  header button.primary {
+    background: #4f7cff;
+    color: #fff;
+  }
+
+  .tabs {
+    display: flex;
+    border-bottom: 1px solid #23262f;
+    flex-shrink: 0;
+  }
+
+  .tabs button {
+    flex: 1;
+    background: none;
+    border: none;
+    color: #8a8d98;
+    padding: 10px 0;
+    font-size: 13px;
+    font-weight: 600;
+    border-bottom: 2px solid transparent;
+  }
+
+  .tabs button.active {
+    color: #e8e8ec;
+    border-bottom: 2px solid #4f7cff;
+  }
+
+  .panes {
+    position: relative;
+    flex: 1;
+    min-height: 0;
+  }
+
+  .pane {
+    position: absolute;
+    inset: 0;
+    display: none;
+  }
+
+  .pane.active {
+    display: block;
+  }
+
+  textarea {
+    width: 100%;
+    height: 100%;
+    resize: none;
+    border: none;
+    outline: none;
+    background: #16181f;
+    color: #d8dae0;
+    font-family: "SF Mono", "Menlo", "Consolas", monospace;
+    font-size: 13.5px;
+    line-height: 1.5;
+    padding: 12px;
+    tab-size: 2;
+    -webkit-appearance: none;
+  }
+
+  iframe {
+    width: 100%;
+    height: 100%;
+    border: none;
+    background: #fff;
+  }
+
+  footer {
+    padding: 8px 14px;
+    font-size: 11px;
+    color: #5c5f6a;
+    text-align: center;
+    border-top: 1px solid #23262f;
+    flex-shrink: 0;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <span>🧩 Mini Editor</span>
+  <div class="actions">
+    <button id="runBtn" class="primary">▶ Rodar</button>
+    <button id="saveBtn">💾 Salvar</button>
+  </div>
+</header>
+
+<div class="tabs">
+  <button class="tab-btn active" data-tab="html">HTML</button>
+  <button class="tab-btn" data-tab="css">CSS</button>
+  <button class="tab-btn" data-tab="js">JS</button>
+  <button class="tab-btn" data-tab="preview">Preview</button>
+</div>
+
+<div class="panes">
+  <div class="pane active" data-pane="html">
+    <textarea id="htmlCode" spellcheck="false">&lt;h1&gt;MINECRAFT&lt;/h1&gt;</textarea>
+  </div>
+  <div class="pane" data-pane="css">
+    <textarea id="cssCode" spellcheck="false">body {
+  background: #0d1a0d;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  margin: 0;
+}
+
+h1 {
+  font-family: Arial, sans-serif;
+  font-size: 60px;
+  color: #55ff55;
+  letter-spacing: 5px;
+  text-shadow:
+    4px 4px 0px #2a7a2a,
+    8px 8px 0px #000;
+}</textarea>
+  </div>
+  <div class="pane" data-pane="js">
+    <textarea id="jsCode" spellcheck="false">// seu javascript aqui</textarea>
+  </div>
+  <div class="pane" data-pane="preview">
+    <iframe id="previewFrame"></iframe>
+  </div>
+</div>
+
+<footer>Nada aqui é salvo automaticamente — usa "Salvar" pra baixar o arquivo</footer>
+
+<script>
+  const tabBtns = document.querySelectorAll('.tab-btn');
+  const panes = document.querySelectorAll('.pane');
+
+  function showTab(name) {
+    tabBtns.forEach(b => b.classList.toggle('active', b.dataset.tab === name));
+    panes.forEach(p => p.classList.toggle('active', p.dataset.pane === name));
+  }
+
+  tabBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      showTab(btn.dataset.tab);
+      if (btn.dataset.tab === 'preview') runCode();
+    });
+  });
+
+  function buildDoc() {
+    const html = document.getElementById('htmlCode').value;
+    const css = document.getElementById('cssCode').value;
+    const js = document.getElementById('jsCode').value;
+    return `<!DOCTYPE html><html><head><meta charset="UTF-8"><style>${css}</style></head><body>${html}<script>${js}<\/script></body></html>`;
+  }
+
+  function runCode() {
+    document.getElementById('previewFrame').srcdoc = buildDoc();
+  }
+
+  document.getElementById('runBtn').addEventListener('click', () => {
+    showTab('preview');
+    runCode();
+  });
+
+  document.getElementById('saveBtn').addEventListener('click', () => {
+    const blob = new Blob([buildDoc()], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'meu-projeto.html';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  });
+
+  runCode();
+</script>
+
+</body>
+</html>
