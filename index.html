@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 <title>Mini Editor</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css">
 <style>
   * { box-sizing: border-box; }
 
@@ -105,11 +106,6 @@
     flex-shrink: 0;
   }
 
-  .toolbar button.danger {
-    color: #ff8080;
-    border-color: #4a2a2a;
-  }
-
   .toolbar button.highlight {
     color: #8fd6ff;
     border-color: #2a4a5a;
@@ -128,30 +124,139 @@
   }
 
   .pane.active {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .split-container {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 0;
+  }
+
+  .editor-box {
+    height: 55%;
+    min-height: 60px;
+    position: relative;
+    flex-shrink: 0;
+    background: #16181f;
+  }
+
+  .code-wrap {
+    display: none;
+    position: absolute;
+    inset: 0;
+  }
+
+  .code-wrap.active {
     display: block;
   }
 
-  textarea {
-    width: 100%;
-    height: 100%;
-    resize: none;
-    border: none;
-    outline: none;
-    background: #16181f;
-    color: #d8dae0;
+  .code-highlight,
+  .code-ta {
+    position: absolute;
+    inset: 0;
+    margin: 0;
+    padding: 12px;
     font-family: "SF Mono", "Menlo", "Consolas", monospace;
     font-size: 13.5px;
     line-height: 1.5;
-    padding: 12px;
     tab-size: 2;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    overflow: auto;
+  }
+
+  .code-highlight {
+    pointer-events: none;
+    background: transparent;
+    z-index: 1;
+  }
+
+  .code-highlight code {
+    font-family: inherit;
+    font-size: inherit;
+    background: none;
+  }
+
+  .code-ta {
+    z-index: 2;
+    background: transparent;
+    color: transparent;
+    caret-color: #fff;
+    border: none;
+    outline: none;
+    resize: none;
+    -webkit-text-fill-color: transparent;
     -webkit-appearance: none;
   }
 
-  iframe {
+  .resizer {
+    flex: 0 0 16px;
+    background: #1c1f27;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: row-resize;
+    touch-action: none;
+    border-top: 1px solid #23262f;
+    border-bottom: 1px solid #23262f;
+  }
+
+  .resizer .grip {
+    width: 36px;
+    height: 4px;
+    background: #4a4d58;
+    border-radius: 2px;
+  }
+
+  .preview-box {
+    flex: 1 1 auto;
+    min-height: 60px;
+    background: #fff;
+  }
+
+  .preview-box iframe {
     width: 100%;
     height: 100%;
     border: none;
     background: #fff;
+  }
+
+  #previewFrame {
+    width: 100%;
+    height: 100%;
+    border: none;
+    background: #fff;
+  }
+
+  .bottom-toolbar {
+    display: flex;
+    gap: 8px;
+    padding: 8px 10px;
+    border-top: 1px solid #23262f;
+    flex-shrink: 0;
+  }
+
+  .bottom-toolbar.hidden {
+    display: none;
+  }
+
+  .bottom-toolbar button {
+    flex: 1;
+    background: #1c1f27;
+    color: #b7bac3;
+    border: 1px solid #2b2e38;
+    border-radius: 8px;
+    padding: 9px 0;
+    font-size: 13px;
+    font-weight: 600;
+  }
+
+  .bottom-toolbar button.danger {
+    color: #ff8080;
+    border-color: #4a2a2a;
   }
 
   footer {
@@ -190,8 +295,6 @@
   <button data-snippet="html-btn">&lt;button&gt;</button>
   <button data-snippet="html-img">&lt;img&gt;</button>
   <button data-snippet="html-a">&lt;a&gt;</button>
-  <button id="copy-html">📋 Copiar</button>
-  <button class="danger" id="clear-html">🗑️ Limpar</button>
 </div>
 
 <div class="toolbar hidden" id="toolbar-css">
@@ -201,8 +304,6 @@
   <button data-snippet="css-transition">transition</button>
   <button data-snippet="css-shadow">box-shadow</button>
   <button data-snippet="css-hover">:hover</button>
-  <button id="copy-css">📋 Copiar</button>
-  <button class="danger" id="clear-css">🗑️ Limpar</button>
 </div>
 
 <div class="toolbar hidden" id="toolbar-js">
@@ -212,16 +313,19 @@
   <button data-snippet="js-loop">for loop</button>
   <button data-snippet="js-fetch">fetch</button>
   <button data-snippet="js-console">console.log</button>
-  <button id="copy-js">📋 Copiar</button>
-  <button class="danger" id="clear-js">🗑️ Limpar</button>
 </div>
 
 <div class="panes">
-  <div class="pane active" data-pane="html">
-    <textarea id="htmlCode" spellcheck="false">&lt;h1&gt;MINECRAFT&lt;/h1&gt;</textarea>
-  </div>
-  <div class="pane" data-pane="css">
-    <textarea id="cssCode" spellcheck="false">body {
+  <div class="pane active" data-pane="editor">
+    <div class="split-container" id="splitContainer">
+      <div class="editor-box" id="editorBox">
+        <div class="code-wrap active" data-lang="html">
+          <pre class="code-highlight" aria-hidden="true"><code id="htmlHighlight" class="language-markup"></code></pre>
+          <textarea id="htmlCode" class="code-ta" data-lang="html" spellcheck="false">&lt;h1&gt;MINECRAFT&lt;/h1&gt;</textarea>
+        </div>
+        <div class="code-wrap" data-lang="css">
+          <pre class="code-highlight" aria-hidden="true"><code id="cssHighlight" class="language-css"></code></pre>
+          <textarea id="cssCode" class="code-ta" data-lang="css" spellcheck="false">body {
   background: #0d1a0d;
   display: flex;
   justify-content: center;
@@ -239,33 +343,76 @@ h1 {
     4px 4px 0px #2a7a2a,
     8px 8px 0px #000;
 }</textarea>
-  </div>
-  <div class="pane" data-pane="js">
-    <textarea id="jsCode" spellcheck="false">// seu javascript aqui</textarea>
+        </div>
+        <div class="code-wrap" data-lang="js">
+          <pre class="code-highlight" aria-hidden="true"><code id="jsHighlight" class="language-javascript"></code></pre>
+          <textarea id="jsCode" class="code-ta" data-lang="js" spellcheck="false">// seu javascript aqui</textarea>
+        </div>
+      </div>
+      <div class="resizer" id="resizer"><div class="grip"></div></div>
+      <div class="preview-box" id="previewBox">
+        <iframe id="liveFrame"></iframe>
+      </div>
+    </div>
   </div>
   <div class="pane" data-pane="preview">
     <iframe id="previewFrame"></iframe>
   </div>
 </div>
 
+<div class="bottom-toolbar" id="bottomToolbar">
+  <button id="copy-bottom">📋 Copiar</button>
+  <button class="danger" id="clear-bottom">🗑️ Limpar</button>
+</div>
+
 <footer>Seu código é salvo automaticamente neste navegador</footer>
+
+<script>var Prism = Prism || {}; Prism.manual = true;</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism-core.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-markup.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-css.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-clike.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-javascript.min.js"></script>
 
 <script>
   const tabBtns = document.querySelectorAll('.tab-btn');
   const panes = document.querySelectorAll('.pane');
   const toolbars = document.querySelectorAll('.toolbar');
+  const codeWraps = document.querySelectorAll('.code-wrap');
   const htmlCode = document.getElementById('htmlCode');
   const cssCode = document.getElementById('cssCode');
   const jsCode = document.getElementById('jsCode');
+  const htmlHighlight = document.getElementById('htmlHighlight');
+  const cssHighlight = document.getElementById('cssHighlight');
+  const jsHighlight = document.getElementById('jsHighlight');
   const saveStatus = document.getElementById('saveStatus');
+  const liveFrame = document.getElementById('liveFrame');
+  const previewFrame = document.getElementById('previewFrame');
+  const bottomToolbar = document.getElementById('bottomToolbar');
+
+  let currentTab = 'html';
+
+  function getCurrentTA() {
+    return currentTab === 'html' ? htmlCode : currentTab === 'css' ? cssCode : jsCode;
+  }
 
   function showTab(name) {
     tabBtns.forEach(b => b.classList.toggle('active', b.dataset.tab === name));
-    panes.forEach(p => p.classList.toggle('active', p.dataset.pane === name));
     toolbars.forEach(t => t.classList.add('hidden'));
     const activeToolbar = document.getElementById('toolbar-' + name);
     if (activeToolbar) activeToolbar.classList.remove('hidden');
-    if (name === 'preview') runCode();
+
+    if (name === 'preview') {
+      panes.forEach(p => p.classList.toggle('active', p.dataset.pane === 'preview'));
+      bottomToolbar.classList.add('hidden');
+      runCode();
+    } else {
+      panes.forEach(p => p.classList.toggle('active', p.dataset.pane === 'editor'));
+      bottomToolbar.classList.remove('hidden');
+      currentTab = name;
+      codeWraps.forEach(w => w.classList.toggle('active', w.dataset.lang === name));
+      updateLive();
+    }
   }
 
   tabBtns.forEach(btn => {
@@ -280,7 +427,11 @@ h1 {
   }
 
   function runCode() {
-    document.getElementById('previewFrame').srcdoc = buildDoc();
+    previewFrame.srcdoc = buildDoc();
+  }
+
+  function updateLive() {
+    liveFrame.srcdoc = buildDoc();
   }
 
   document.getElementById('runBtn').addEventListener('click', () => {
@@ -318,20 +469,47 @@ h1 {
     if (savedJs !== null) jsCode.value = savedJs;
   }
 
+  // --- Realce de sintaxe (cores) ---
+  function highlightPair(ta, codeEl) {
+    codeEl.textContent = ta.value + '\n';
+    Prism.highlightElement(codeEl);
+  }
+
+  function highlightAll() {
+    highlightPair(htmlCode, htmlHighlight);
+    highlightPair(cssCode, cssHighlight);
+    highlightPair(jsCode, jsHighlight);
+  }
+
+  function syncScroll(ta, pre) {
+    pre.scrollTop = ta.scrollTop;
+    pre.scrollLeft = ta.scrollLeft;
+  }
+
+  htmlCode.addEventListener('scroll', () => syncScroll(htmlCode, htmlHighlight.parentElement));
+  cssCode.addEventListener('scroll', () => syncScroll(cssCode, cssHighlight.parentElement));
+  jsCode.addEventListener('scroll', () => syncScroll(jsCode, jsHighlight.parentElement));
+
   [htmlCode, cssCode, jsCode].forEach(el => {
-    el.addEventListener('input', saveToStorage);
+    el.addEventListener('input', () => {
+      saveToStorage();
+      updateLive();
+      if (el === htmlCode) highlightPair(htmlCode, htmlHighlight);
+      if (el === cssCode) highlightPair(cssCode, cssHighlight);
+      if (el === jsCode) highlightPair(jsCode, jsHighlight);
+    });
   });
 
   function clearField(el) {
     if (confirm('Tem certeza que quer apagar todo esse conteúdo?')) {
       el.value = '';
       saveToStorage();
+      updateLive();
+      highlightAll();
     }
   }
 
-  document.getElementById('clear-html').addEventListener('click', () => clearField(htmlCode));
-  document.getElementById('clear-css').addEventListener('click', () => clearField(cssCode));
-  document.getElementById('clear-js').addEventListener('click', () => clearField(jsCode));
+  document.getElementById('clear-bottom').addEventListener('click', () => clearField(getCurrentTA()));
 
   function copyField(el, btn) {
     navigator.clipboard.writeText(el.value).then(() => {
@@ -341,9 +519,7 @@ h1 {
     });
   }
 
-  document.getElementById('copy-html').addEventListener('click', (e) => copyField(htmlCode, e.target));
-  document.getElementById('copy-css').addEventListener('click', (e) => copyField(cssCode, e.target));
-  document.getElementById('copy-js').addEventListener('click', (e) => copyField(jsCode, e.target));
+  document.getElementById('copy-bottom').addEventListener('click', (e) => copyField(getCurrentTA(), e.target));
 
   const snippets = {
     'html-boilerplate': '<!DOCTYPE html>\n<html lang="pt-br">\n<head>\n<meta charset="UTF-8">\n<meta name="viewport" content="width=device-width, initial-scale=1">\n<title>Título da página</title>\n</head>\n<body>\n\n</body>\n</html>',
@@ -375,6 +551,10 @@ h1 {
     textarea.selectionStart = textarea.selectionEnd = start + text.length;
     textarea.focus();
     saveToStorage();
+    updateLive();
+    if (textarea === htmlCode) highlightPair(htmlCode, htmlHighlight);
+    if (textarea === cssCode) highlightPair(cssCode, cssHighlight);
+    if (textarea === jsCode) highlightPair(jsCode, jsHighlight);
   }
 
   document.querySelectorAll('[data-snippet]').forEach(btn => {
@@ -385,8 +565,40 @@ h1 {
     });
   });
 
+  const splitContainer = document.getElementById('splitContainer');
+  const editorBox = document.getElementById('editorBox');
+  const resizer = document.getElementById('resizer');
+
+  resizer.addEventListener('pointerdown', (e) => {
+    e.preventDefault();
+    resizer.setPointerCapture(e.pointerId);
+    const startY = e.clientY;
+    const startHeight = editorBox.getBoundingClientRect().height;
+    const containerHeight = splitContainer.getBoundingClientRect().height;
+    const resizerHeight = resizer.getBoundingClientRect().height;
+
+    function onMove(ev) {
+      const delta = ev.clientY - startY;
+      let newHeight = startHeight + delta;
+      const min = 60;
+      const max = containerHeight - resizerHeight - min;
+      newHeight = Math.max(min, Math.min(max, newHeight));
+      editorBox.style.height = newHeight + 'px';
+    }
+
+    function onUp() {
+      resizer.releasePointerCapture(e.pointerId);
+      resizer.removeEventListener('pointermove', onMove);
+      resizer.removeEventListener('pointerup', onUp);
+    }
+
+    resizer.addEventListener('pointermove', onMove);
+    resizer.addEventListener('pointerup', onUp);
+  });
+
   loadFromStorage();
-  runCode();
+  updateLive();
+  highlightAll();
 </script>
 
 </body>
