@@ -80,6 +80,36 @@
     border-bottom: 2px solid #4f7cff;
   }
 
+  .toolbar {
+    display: flex;
+    gap: 6px;
+    padding: 8px 10px;
+    border-bottom: 1px solid #23262f;
+    overflow-x: auto;
+    flex-shrink: 0;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .toolbar.hidden {
+    display: none;
+  }
+
+  .toolbar button {
+    background: #1c1f27;
+    color: #b7bac3;
+    border: 1px solid #2b2e38;
+    border-radius: 7px;
+    padding: 6px 10px;
+    font-size: 12px;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .toolbar button.danger {
+    color: #ff8080;
+    border-color: #4a2a2a;
+  }
+
   .panes {
     position: relative;
     flex: 1;
@@ -147,6 +177,39 @@
   <button class="tab-btn" data-tab="preview">Preview</button>
 </div>
 
+<div class="toolbar" id="toolbar-html">
+  <button data-snippet="html-div">&lt;div&gt;</button>
+  <button data-snippet="html-h1">&lt;h1&gt;</button>
+  <button data-snippet="html-p">&lt;p&gt;</button>
+  <button data-snippet="html-btn">&lt;button&gt;</button>
+  <button data-snippet="html-img">&lt;img&gt;</button>
+  <button data-snippet="html-a">&lt;a&gt;</button>
+  <button id="copy-html">📋 Copiar</button>
+  <button class="danger" id="clear-html">🗑️ Limpar</button>
+</div>
+
+<div class="toolbar hidden" id="toolbar-css">
+  <button data-snippet="css-flex">flex center</button>
+  <button data-snippet="css-grid">grid</button>
+  <button data-snippet="css-media">@media</button>
+  <button data-snippet="css-transition">transition</button>
+  <button data-snippet="css-shadow">box-shadow</button>
+  <button data-snippet="css-hover">:hover</button>
+  <button id="copy-css">📋 Copiar</button>
+  <button class="danger" id="clear-css">🗑️ Limpar</button>
+</div>
+
+<div class="toolbar hidden" id="toolbar-js">
+  <button data-snippet="js-function">function</button>
+  <button data-snippet="js-listener">addEventListener</button>
+  <button data-snippet="js-query">querySelector</button>
+  <button data-snippet="js-loop">for loop</button>
+  <button data-snippet="js-fetch">fetch</button>
+  <button data-snippet="js-console">console.log</button>
+  <button id="copy-js">📋 Copiar</button>
+  <button class="danger" id="clear-js">🗑️ Limpar</button>
+</div>
+
 <div class="panes">
   <div class="pane active" data-pane="html">
     <textarea id="htmlCode" spellcheck="false">&lt;h1&gt;MINECRAFT&lt;/h1&gt;</textarea>
@@ -184,6 +247,7 @@ h1 {
 <script>
   const tabBtns = document.querySelectorAll('.tab-btn');
   const panes = document.querySelectorAll('.pane');
+  const toolbars = document.querySelectorAll('.toolbar');
   const htmlCode = document.getElementById('htmlCode');
   const cssCode = document.getElementById('cssCode');
   const jsCode = document.getElementById('jsCode');
@@ -192,13 +256,14 @@ h1 {
   function showTab(name) {
     tabBtns.forEach(b => b.classList.toggle('active', b.dataset.tab === name));
     panes.forEach(p => p.classList.toggle('active', p.dataset.pane === name));
+    toolbars.forEach(t => t.classList.add('hidden'));
+    const activeToolbar = document.getElementById('toolbar-' + name);
+    if (activeToolbar) activeToolbar.classList.remove('hidden');
+    if (name === 'preview') runCode();
   }
 
   tabBtns.forEach(btn => {
-    btn.addEventListener('click', () => {
-      showTab(btn.dataset.tab);
-      if (btn.dataset.tab === 'preview') runCode();
-    });
+    btn.addEventListener('click', () => showTab(btn.dataset.tab));
   });
 
   function buildDoc() {
@@ -250,6 +315,71 @@ h1 {
 
   [htmlCode, cssCode, jsCode].forEach(el => {
     el.addEventListener('input', saveToStorage);
+  });
+
+  // --- Botões de limpar ---
+  function clearField(el) {
+    if (confirm('Tem certeza que quer apagar todo esse conteúdo?')) {
+      el.value = '';
+      saveToStorage();
+    }
+  }
+
+  document.getElementById('clear-html').addEventListener('click', () => clearField(htmlCode));
+  document.getElementById('clear-css').addEventListener('click', () => clearField(cssCode));
+  document.getElementById('clear-js').addEventListener('click', () => clearField(jsCode));
+
+  // --- Botões de copiar ---
+  function copyField(el, btn) {
+    navigator.clipboard.writeText(el.value).then(() => {
+      const original = btn.textContent;
+      btn.textContent = '✓ Copiado';
+      setTimeout(() => btn.textContent = original, 1200);
+    });
+  }
+
+  document.getElementById('copy-html').addEventListener('click', (e) => copyField(htmlCode, e.target));
+  document.getElementById('copy-css').addEventListener('click', (e) => copyField(cssCode, e.target));
+  document.getElementById('copy-js').addEventListener('click', (e) => copyField(jsCode, e.target));
+
+  // --- Snippets rápidos ---
+  const snippets = {
+    'html-div': '<div class="">\n  \n</div>',
+    'html-h1': '<h1></h1>',
+    'html-p': '<p></p>',
+    'html-btn': '<button onclick="">Clique aqui</button>',
+    'html-img': '<img src="" alt="">',
+    'html-a': '<a href="" target="_blank"></a>',
+    'css-flex': 'display: flex;\njustify-content: center;\nalign-items: center;',
+    'css-grid': 'display: grid;\ngrid-template-columns: repeat(3, 1fr);\ngap: 12px;',
+    'css-media': '@media (max-width: 600px) {\n  \n}',
+    'css-transition': 'transition: all 0.2s ease;',
+    'css-shadow': 'box-shadow: 0 4px 12px rgba(0,0,0,0.3);',
+    'css-hover': ':hover {\n  \n}',
+    'js-function': 'function nomeDaFuncao() {\n  \n}',
+    'js-listener': "document.querySelector('').addEventListener('click', () => {\n  \n});",
+    'js-query': "document.querySelector('')",
+    'js-loop': 'for (let i = 0; i < 10; i++) {\n  \n}',
+    'js-fetch': "fetch('')\n  .then(res => res.json())\n  .then(data => console.log(data));",
+    'js-console': 'console.log();'
+  };
+
+  function insertAtCursor(textarea, text) {
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const value = textarea.value;
+    textarea.value = value.slice(0, start) + text + value.slice(end);
+    textarea.selectionStart = textarea.selectionEnd = start + text.length;
+    textarea.focus();
+    saveToStorage();
+  }
+
+  document.querySelectorAll('[data-snippet]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const key = btn.dataset.snippet;
+      const target = key.startsWith('html') ? htmlCode : key.startsWith('css') ? cssCode : jsCode;
+      insertAtCursor(target, snippets[key]);
+    });
   });
 
   loadFromStorage();
