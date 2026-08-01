@@ -35,6 +35,7 @@
   header .actions {
     display: flex;
     gap: 8px;
+    align-items: center;
   }
 
   header button {
@@ -50,6 +51,11 @@
   header button.primary {
     background: #4f7cff;
     color: #fff;
+  }
+
+  #saveStatus {
+    font-size: 11px;
+    color: #5c5f6a;
   }
 
   .tabs {
@@ -128,8 +134,9 @@
 <header>
   <span>🧩 Mini Editor</span>
   <div class="actions">
+    <span id="saveStatus"></span>
     <button id="runBtn" class="primary">▶ Rodar</button>
-    <button id="saveBtn">💾 Salvar</button>
+    <button id="saveBtn">💾 Baixar</button>
   </div>
 </header>
 
@@ -172,11 +179,15 @@ h1 {
   </div>
 </div>
 
-<footer>Nada aqui é salvo automaticamente — usa "Salvar" pra baixar o arquivo</footer>
+<footer>Seu código é salvo automaticamente neste navegador</footer>
 
 <script>
   const tabBtns = document.querySelectorAll('.tab-btn');
   const panes = document.querySelectorAll('.pane');
+  const htmlCode = document.getElementById('htmlCode');
+  const cssCode = document.getElementById('cssCode');
+  const jsCode = document.getElementById('jsCode');
+  const saveStatus = document.getElementById('saveStatus');
 
   function showTab(name) {
     tabBtns.forEach(b => b.classList.toggle('active', b.dataset.tab === name));
@@ -191,9 +202,9 @@ h1 {
   });
 
   function buildDoc() {
-    const html = document.getElementById('htmlCode').value;
-    const css = document.getElementById('cssCode').value;
-    const js = document.getElementById('jsCode').value;
+    const html = htmlCode.value;
+    const css = cssCode.value;
+    const js = jsCode.value;
     return `<!DOCTYPE html><html><head><meta charset="UTF-8"><style>${css}</style></head><body>${html}<script>${js}<\/script></body></html>`;
   }
 
@@ -218,6 +229,30 @@ h1 {
     URL.revokeObjectURL(url);
   });
 
+  // --- Salvamento automático (localStorage) ---
+  function saveToStorage() {
+    localStorage.setItem('miniEditor_html', htmlCode.value);
+    localStorage.setItem('miniEditor_css', cssCode.value);
+    localStorage.setItem('miniEditor_js', jsCode.value);
+    saveStatus.textContent = 'salvo ✓';
+    clearTimeout(saveToStorage._t);
+    saveToStorage._t = setTimeout(() => saveStatus.textContent = '', 1500);
+  }
+
+  function loadFromStorage() {
+    const savedHtml = localStorage.getItem('miniEditor_html');
+    const savedCss = localStorage.getItem('miniEditor_css');
+    const savedJs = localStorage.getItem('miniEditor_js');
+    if (savedHtml !== null) htmlCode.value = savedHtml;
+    if (savedCss !== null) cssCode.value = savedCss;
+    if (savedJs !== null) jsCode.value = savedJs;
+  }
+
+  [htmlCode, cssCode, jsCode].forEach(el => {
+    el.addEventListener('input', saveToStorage);
+  });
+
+  loadFromStorage();
   runCode();
 </script>
 
